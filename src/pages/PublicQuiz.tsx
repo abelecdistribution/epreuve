@@ -590,7 +590,7 @@ const PublicQuiz = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-2.5">
+    <div className="min-h-screen bg-gray-50 py-2.5 flex flex-col">
       <div className="px-4 sm:px-6 lg:px-8">
         <div className="max-w-xs mx-auto mb-2.5">
           <img
@@ -644,6 +644,15 @@ const PublicQuiz = () => {
           )}
         </div>
       </div>
+      <footer className="mt-auto pt-12 pb-4 text-center text-sm text-gray-400">
+        <div className="space-x-2">
+          <span>Copyright 2025 - ABELEC DISTRIBUTION</span>
+          <span>-</span>
+          <a href="#" className="hover:text-gray-600 transition-colors">Mentions légales</a>
+          <span>-</span>
+          <a href="#" className="hover:text-gray-600 transition-colors">Règlement du concours</a>
+        </div>
+      </footer>
     </div>
   );
 };
