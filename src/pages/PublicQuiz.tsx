@@ -39,7 +39,7 @@ const PublicQuiz = () => {
       />
       <div className="bg-red-50 border border-red-100 rounded-lg p-6 mb-8">
         <h2 className="text-xl font-semibold text-gray-900 mb-3">
-          Une nouvelle épreuve est disponible !
+          Une nouvelle épreuve est disponible ! 🏆
         </h2>
         <p className="text-gray-600 mb-4">
           Testez vos connaissances et tentez de gagner des récompenses exceptionnelles.
