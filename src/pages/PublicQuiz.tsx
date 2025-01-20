@@ -400,8 +400,8 @@ const PublicQuiz = () => {
       <div className="py-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-xs mx-auto mb-4">
           <img
-            src="https://i.ibb.co/5K8VFLb/Quiz-1.png"
-            alt="Quiz Logo"
+            src="https://i.ibb.co/FJB3679/Epreuve-abelec.png"
+            alt="Epreuve ABELEC"
             className="w-full h-auto"
           />
         </div>
