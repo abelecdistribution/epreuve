@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
-import { PlusCircle, Save, Trash2, LogOut, Users, FileEdit, Download, Search, ChevronDown, Calendar, Clock, Eye } from 'lucide-react';
+import { PlusCircle, Save, Trash2, LogOut, Users, FileEdit, Download, Search, ChevronDown, Calendar, Clock, Eye, Trophy } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 import RichTextEditor from '../components/RichTextEditor';
@@ -52,6 +52,63 @@ const AdminDashboard = () => {
     key: 'email' | 'created_at' | 'score';
     direction: 'asc' | 'desc';
   }>({ key: 'created_at', direction: 'desc' });
+  const [drawingWinner, setDrawingWinner] = useState(false);
+  const [winner, setWinner] = useState<string | null>(null);
+  const [confetti, setConfetti] = useState<{ id: number; style: React.CSSProperties }[]>([]);
+
+  // Fonction pour créer un confetti
+  const createConfetti = () => {
+    const colors = ['#ca231c', '#fbbf24', '#34d399', '#60a5fa', '#a78bfa'];
+    const confettiCount = 50;
+    const newConfetti = Array.from({ length: confettiCount }).map((_, i) => ({
+      id: Date.now() + i,
+      style: {
+        left: `${Math.random() * 100}vw`,
+        backgroundColor: colors[Math.floor(Math.random() * colors.length)],
+        transform: `rotate(${Math.random() * 360}deg)`,
+        animationDelay: `${Math.random() * 2}s`,
+      },
+    }));
+    setConfetti(newConfetti);
+    setTimeout(() => setConfetti([]), 4000);
+  };
+
+  // Fonction pour le tirage au sort
+  const drawWinner = async () => {
+    if (!selectedQuizId || drawingWinner || winner) return;
+
+    setDrawingWinner(true);
+    const perfectScoreSubmissions = filteredAndSortedSubmissions.filter(
+      (submission) => submission.score === 5
+    );
+
+    if (perfectScoreSubmissions.length === 0) {
+      toast.error('Aucun participant n\'a obtenu un score parfait');
+      setDrawingWinner(false);
+      return;
+    }
+
+    // Animation de sélection aléatoire
+    let counter = 0;
+    const totalSteps = 20;
+    const interval = setInterval(() => {
+      const randomIndex = Math.floor(Math.random() * perfectScoreSubmissions.length);
+      const tempWinner = perfectScoreSubmissions[randomIndex].email;
+      setWinner(tempWinner);
+      counter++;
+
+      if (counter === totalSteps) {
+        clearInterval(interval);
+        // Sélection finale
+        const finalIndex = Math.floor(Math.random() * perfectScoreSubmissions.length);
+        const finalWinner = perfectScoreSubmissions[finalIndex].email;
+        setWinner(finalWinner);
+        setDrawingWinner(false);
+        createConfetti();
+        toast.success('Le gagnant a été tiré au sort !');
+      }
+    }, 500);
+  };
 
   useEffect(() => {
     loadQuizzes();
@@ -67,9 +124,8 @@ const AdminDashboard = () => {
     try {
       const { data, error } = await supabase
         .from('submissions')
-        .select('quiz_id, count')
         .select('quiz_id')
-        .in('quiz_id', allQuizzes.map(quiz => quiz.id));
+        .in('quiz_id', allQuizzes.map(quiz => quiz.id || ''));
 
       if (error) throw error;
 
@@ -79,7 +135,9 @@ const AdminDashboard = () => {
       });
       setQuizParticipants(counts);
     } catch (error) {
-      console.error('Error loading participants counts:', error);
+      if (error instanceof Error) {
+        console.error('Error loading participants counts:', error.message);
+      }
     }
   };
 
@@ -556,6 +614,13 @@ const AdminDashboard = () => {
                   </tbody>
                 </table>
               </div>
+              {confetti.map((c) => (
+                <div
+                  key={c.id}
+                  className="confetti"
+                  style={c.style}
+                />
+              ))}
             </div>
           )}
 
@@ -757,7 +822,7 @@ const AdminDashboard = () => {
                 <h2 className="text-lg font-medium text-gray-900 flex items-center">
                   <Users className="w-5 h-5 text-gray-500 mr-2" />
                   {selectedQuizId ? (
-                    <>
+                    <div className="flex items-center">
                       Réponses pour : {allQuizzes.find(q => q.id === selectedQuizId)?.title}
                       <button
                         onClick={() => setActiveTab('list')}
@@ -765,19 +830,35 @@ const AdminDashboard = () => {
                       >
                         (Changer de quiz)
                       </button>
-                    </>
+                    </div>
                   ) : (
                     'Sélectionnez un quiz pour voir les réponses'
                   )}
                 </h2>
-                {selectedQuizId && (
-                  <button
-                    onClick={exportToCSV}
-                    className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
-                  >
-                    <Download className="w-4 h-4 mr-2" />
-                    Exporter en CSV
-                  </button>
+                {selectedQuizId && allQuizzes && (
+                  <div className="flex space-x-4">
+                    {new Date() > new Date(allQuizzes.find(q => q.id === selectedQuizId)?.end_date || '') && (
+                      <button
+                        onClick={drawWinner}
+                        disabled={drawingWinner || winner !== null}
+                        className={`inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white ${
+                          drawingWinner || winner !== null
+                            ? 'bg-gray-400 cursor-not-allowed'
+                            : 'bg-[#ca231c] hover:bg-[#b01e18]'
+                        }`}
+                      >
+                        <Trophy className={`w-4 h-4 mr-2 ${drawingWinner ? 'animate-spin' : ''}`} />
+                        {drawingWinner ? 'Tirage en cours...' : 'Tirer au sort'}
+                      </button>
+                    )}
+                    <button
+                      onClick={exportToCSV}
+                      className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+                    >
+                      <Download className="w-4 h-4 mr-2" />
+                      Exporter en CSV
+                    </button>
+                  </div>
                 )}
               </div>
 
@@ -873,9 +954,21 @@ const AdminDashboard = () => {
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
                     {filteredAndSortedSubmissions.map((submission, index) => (
-                      <tr key={index}>
+                      <tr 
+                        key={index}
+                        className={`${
+                          submission.email === winner
+                            ? 'bg-red-50 animate-[winner-highlight_1s_ease-in-out]'
+                            : ''
+                        }`}
+                      >
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {submission.email}
+                          <div className="flex items-center">
+                            {submission.email}
+                            {submission.email === winner && (
+                              <Trophy className="w-4 h-4 ml-2 text-[#ca231c]" />
+                            )}
+                          </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                           {new Date(submission.created_at).toLocaleDateString()}
