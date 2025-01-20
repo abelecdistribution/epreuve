@@ -91,21 +91,36 @@ const AdminDashboard = () => {
     // Animation de sélection aléatoire
     let counter = 0;
     const totalSteps = 20;
-    const interval = setInterval(() => {
+    const interval = setInterval(async () => {
       const randomIndex = Math.floor(Math.random() * perfectScoreSubmissions.length);
       const tempWinner = perfectScoreSubmissions[randomIndex].email;
       setWinner(tempWinner);
       counter++;
 
-      if (counter === totalSteps) {
+      if (counter >= totalSteps) {
         clearInterval(interval);
         // Sélection finale
         const finalIndex = Math.floor(Math.random() * perfectScoreSubmissions.length);
         const finalWinner = perfectScoreSubmissions[finalIndex].email;
         setWinner(finalWinner);
-        setDrawingWinner(false);
-        createConfetti();
-        toast.success('Le gagnant a été tiré au sort !');
+        
+        try {
+          // Sauvegarder le gagnant dans la base de données
+          const { error: updateError } = await supabase
+            .from('quizzes')
+            .update({ drawn_winner_email: finalWinner })
+            .eq('id', selectedQuizId);
+
+          if (updateError) throw updateError;
+
+          setDrawingWinner(false);
+          createConfetti();
+          toast.success('Le gagnant a été tiré au sort !');
+        } catch (error) {
+          console.error('Error saving winner:', error);
+          toast.error('Erreur lors de la sauvegarde du gagnant');
+          setDrawingWinner(false);
+        }
       }
     }, 500);
   };
@@ -307,16 +322,8 @@ const AdminDashboard = () => {
       return;
     }
 
-    // Vérifier que les dates sont dans le même mois que month
-    const quizMonth = new Date(quiz.month);
     const startDate = new Date(quiz.start_date);
     const endDate = new Date(quiz.end_date);
-
-    if (quizMonth.getMonth() !== startDate.getMonth() || 
-        quizMonth.getFullYear() !== startDate.getFullYear()) {
-      toast.error('La date de début doit être dans le même mois que le quiz');
-      return;
-    }
 
     setSaving(true);
     try {
@@ -333,7 +340,7 @@ const AdminDashboard = () => {
         admin_id: user.id,
         start_date: startDate.toISOString(),
         end_date: endDate.toISOString(),
-        month: quizMonth.toISOString().split('T')[0],
+        month: new Date(startDate.getFullYear(), startDate.getMonth(), 1).toISOString().split('T')[0],
         banner_url: bannerUrl || null
       };
 
