@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
-import { Loader2, Send, Lock, ChevronLeft, Star, ArrowRight, Mail, Clock, Info, Book } from 'lucide-react';
+import { Loader2, Send, Lock, ChevronLeft, Star, ArrowRight, Mail, Clock, Info, Book, Trophy, X, ChevronDown } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 interface Question {
@@ -17,6 +17,13 @@ interface Quiz {
   description: string;
 }
 
+interface PastQuiz {
+  id: string;
+  title: string;
+  drawn_winner_email: string | null;
+  end_date: string;
+}
+
 const PublicQuiz = () => {
   const navigate = useNavigate();
   const [quiz, setQuiz] = useState<Quiz | null>(null);
@@ -30,6 +37,86 @@ const PublicQuiz = () => {
   const [checkingEmail, setCheckingEmail] = useState(false);
   const GOOGLE_REVIEW_URL = 'https://www.google.com/search?q=ABELEC+DISTRIBUTION&sca_esv=8ac8d9f2846f5353&rlz=1C1GCEA_enFR1120FR1120&hl=fr-FR&udm=1&sa=X&ved=2ahUKEwj3usenouiKAxV_bKQEHQIBB-IQjGp6BAgmEAE&biw=1920&bih=911&dpr=1';
   const [activeTab, setActiveTab] = useState<'quiz' | 'info'>('quiz');
+  const [pastQuizzes, setPastQuizzes] = useState<PastQuiz[]>([]);
+  const [showPastQuizzes, setShowPastQuizzes] = useState(false);
+
+  const loadPastQuizzes = async () => {
+    try {
+      const { data: quizzes, error: quizzesError } = await supabase
+        .from('quizzes')
+        .select('id, title, end_date, drawn_winner_email')
+        .lt('end_date', new Date().toISOString())
+        .order('end_date', { ascending: false });
+
+      if (quizzesError) throw quizzesError;
+
+      setPastQuizzes(quizzes || []);
+    } catch (error) {
+      console.error('Error loading past quizzes:', error);
+    }
+  };
+
+  useEffect(() => {
+    loadPastQuizzes();
+  }, []);
+
+  const maskEmail = (email: string) => {
+    const [localPart, domain] = email.split('@');
+    return `${localPart.slice(0, 4)}*****@${domain}`;
+  };
+
+  const renderPastQuizzesModal = () => (
+    <div className={`fixed inset-0 bg-black bg-opacity-50 z-50 transition-opacity ${showPastQuizzes ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+      <div className="min-h-screen px-4 text-center">
+        <div className="fixed inset-0" aria-hidden="true">
+          <div className="absolute inset-0 bg-gray-500 opacity-75"></div>
+        </div>
+
+        <span className="inline-block h-screen align-middle" aria-hidden="true">&#8203;</span>
+
+        <div className={`inline-block w-full max-w-2xl p-6 my-8 text-left align-middle transition-all transform bg-white shadow-xl rounded-lg ${showPastQuizzes ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}>
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-lg font-medium text-gray-900 flex items-center">
+              <Trophy className="w-5 h-5 text-[#ca231c] mr-2" />
+              Gagnants des épreuves précédentes
+            </h3>
+            <button
+              onClick={() => setShowPastQuizzes(false)}
+              className="text-gray-400 hover:text-gray-500"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+
+          <div className="mt-4 space-y-4">
+            {pastQuizzes.map((pastQuiz) => (
+              <div
+                key={pastQuiz.id}
+                className="bg-gray-50 p-4 rounded-lg"
+              >
+                <div className="flex justify-between items-start">
+                  <div>
+                    <h4 className="font-medium text-gray-900">{pastQuiz.title}</h4>
+                    <p className="text-sm text-gray-500 mt-1">
+                      Terminé le {new Date(pastQuiz.end_date).toLocaleDateString()}
+                    </p>
+                  </div>
+                  {pastQuiz.winner_email && (
+                    <div className="flex items-center bg-red-50 px-3 py-1 rounded-full">
+                      <Trophy className="w-4 h-4 text-[#ca231c] mr-2" />
+                      <span className="text-sm font-medium text-[#ca231c]">
+                        {maskEmail(pastQuiz.winner_email)}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 
   const renderInfo = () => (
     <div className="bg-white rounded-lg shadow-lg p-8">
@@ -96,11 +183,11 @@ const PublicQuiz = () => {
   const renderWelcome = () => (
     <div className="bg-white rounded-lg shadow-lg p-8 text-center">
       <h1 className="text-3xl font-bold text-[#ca231c] mb-4">{quiz?.title}</h1>
-      
       <div 
-        className="text-gray-600 mb-4 prose max-w-none prose-img:my-0 prose-img:mx-auto"
+        className="text-gray-600 mb-8 prose max-w-none prose-img:my-0 prose-img:mx-auto"
         dangerouslySetInnerHTML={{ __html: quiz?.description || '' }}
       />
+      
       <div className="bg-red-50 border border-red-100 rounded-lg p-4 mb-4">
         <h2 className="text-xl font-semibold text-gray-900 mb-3">
           Une nouvelle épreuve est disponible !
@@ -110,6 +197,7 @@ const PublicQuiz = () => {
           Le test comporte {questions.length} questions à choix unique.
         </p>
       </div>
+      
       <button
         onClick={() => setStep('email')}
         className="inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-[#ca231c] hover:bg-[#b01e18] transition-colors duration-200 shadow-sm"
@@ -117,6 +205,47 @@ const PublicQuiz = () => {
         Tester mes connaissances
         <ArrowRight className="w-5 h-5 ml-2" />
       </button>
+      
+      {pastQuizzes.length > 0 && (
+        <div className="mt-8 border-t border-gray-200 pt-8">
+          <button
+            onClick={() => setShowPastQuizzes(!showPastQuizzes)}
+            className="flex items-center justify-center space-x-2 mx-auto text-gray-600 hover:text-gray-900"
+          >
+            <Trophy className="w-5 h-5 text-[#ca231c]" />
+            <span>Voir les précédents gagnants</span>
+            <ChevronDown className={`w-5 h-5 transform transition-transform ${showPastQuizzes ? 'rotate-180' : ''}`} />
+          </button>
+          
+          {showPastQuizzes && (
+            <div className="mt-4 space-y-4 animate-fade-in">
+              {pastQuizzes.map((pastQuiz) => (
+                <div
+                  key={pastQuiz.id}
+                  className="bg-gray-50 p-4 rounded-lg"
+                >
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h4 className="font-medium text-gray-900">{pastQuiz.title}</h4>
+                      <p className="text-sm text-gray-500 mt-1">
+                        Terminé le {new Date(pastQuiz.end_date).toLocaleDateString()}
+                      </p>
+                    </div>
+                    {pastQuiz.drawn_winner_email && (
+                      <div className="flex items-center bg-red-50 px-3 py-1 rounded-full">
+                        <Trophy className="w-4 h-4 text-[#ca231c] mr-2" />
+                        <span className="text-sm font-medium text-[#ca231c]">
+                          {maskEmail(pastQuiz.drawn_winner_email)}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 
@@ -221,34 +350,49 @@ const PublicQuiz = () => {
   };
 
   const loadCurrentQuiz = async () => {
+    const maxRetries = 3;
+    let retryCount = 0;
+    
     try {
-      const { data: quizData, error: quizError } = await supabase
-        .from('quizzes')
-        .select('*')
-        .gte('end_date', new Date().toISOString())
-        .lte('start_date', new Date().toISOString())
-        .maybeSingle();
+      while (retryCount < maxRetries) {
+        try {
+          const { data: quizData, error: quizError } = await supabase
+            .from('quizzes')
+            .select('*')
+            .gte('end_date', new Date().toISOString())
+            .lte('start_date', new Date().toISOString())
+            .maybeSingle();
 
-      if (!quizData) {
-        setLoading(false);
-        return;
-      }
+          if (quizError) throw quizError;
+
+          if (!quizData) {
+            setLoading(false);
+            return;
+          }
       
-      if (quizError) throw quizError;
+          setQuiz(quizData);
 
-      setQuiz(quizData);
+          const { data: questionsData, error: questionsError } = await supabase
+            .from('questions')
+            .select('*')
+            .eq('quiz_id', quizData.id)
+            .order('order');
 
-      const { data: questionsData, error: questionsError } = await supabase
-        .from('questions')
-        .select('*')
-        .eq('quiz_id', quizData.id)
-        .order('order');
+          if (questionsError) throw questionsError;
+          setQuestions(questionsData || []);
 
-      if (questionsError) throw questionsError;
-      setQuestions(questionsData);
+          // If we get here, everything worked
+          break;
+        } catch (error) {
+          retryCount++;
+          if (retryCount === maxRetries) throw error;
+          // Wait before retrying (exponential backoff)
+          await new Promise(resolve => setTimeout(resolve, Math.pow(2, retryCount) * 1000));
+        }
+      }
     } catch (error) {
       console.error('Error loading quiz:', error);
-      toast.error('Erreur lors du chargement du quiz');
+      toast.error('Erreur de connexion. Veuillez réessayer dans quelques instants.');
     } finally {
       setLoading(false);
     }
