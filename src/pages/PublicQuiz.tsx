@@ -33,13 +33,13 @@ const PublicQuiz = () => {
 
   const renderInfo = () => (
     <div className="bg-white rounded-lg shadow-lg p-8">
-      <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6">
+      <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
         <Book className="w-8 h-8 text-[#ca231c]" />
       </div>
-      <h2 className="text-2xl font-bold text-gray-900 text-center mb-8">
+      <h2 className="text-2xl font-bold text-gray-900 text-center mb-4">
         À propos de l'Épreuve d'ABELEC
       </h2>
-      <div className="max-w-2xl mx-auto space-y-8">
+      <div className="max-w-2xl mx-auto space-y-4">
         <div className="bg-gray-50 rounded-lg p-6">
           <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
             <span className="w-8 h-8 bg-[#ca231c] text-white rounded-full flex items-center justify-center mr-3 flex-shrink-0">1</span>
@@ -98,10 +98,10 @@ const PublicQuiz = () => {
       <h1 className="text-3xl font-bold text-[#ca231c] mb-4">{quiz?.title}</h1>
       
       <div 
-        className="text-gray-600 mb-8 prose max-w-none prose-img:my-0 prose-img:mx-auto"
+        className="text-gray-600 mb-4 prose max-w-none prose-img:my-0 prose-img:mx-auto"
         dangerouslySetInnerHTML={{ __html: quiz?.description || '' }}
       />
-      <div className="bg-red-50 border border-red-100 rounded-lg p-6 mb-8">
+      <div className="bg-red-50 border border-red-100 rounded-lg p-4 mb-4">
         <h2 className="text-xl font-semibold text-gray-900 mb-3">
           Une nouvelle épreuve est disponible !
         </h2>
@@ -123,7 +123,7 @@ const PublicQuiz = () => {
   const renderEmailStep = () => (
     <div className="bg-white rounded-lg shadow-lg p-8">
       {quiz?.banner_url && (
-        <div className="rounded-lg overflow-hidden mb-6">
+        <div className="rounded-lg overflow-hidden mb-4">
           <img
             src={quiz.banner_url}
             alt="Quiz banner"
@@ -131,17 +131,17 @@ const PublicQuiz = () => {
           />
         </div>
       )}
-      <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6">
+      <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
         <Mail className="w-8 h-8 text-[#ca231c]" />
       </div>
       <h2 className="text-2xl font-bold text-gray-900 text-center mb-4">
         Commençons l'épreuve
       </h2>
-      <p className="text-gray-600 text-center mb-8">
+      <p className="text-gray-600 text-center mb-4">
         Entrez votre adresse email pour participer à l'épreuve
       </p>
       <div className="max-w-md mx-auto">
-        <div className="mb-6">
+        <div className="mb-4">
           <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
             Votre email
           </label>
@@ -343,9 +343,9 @@ const PublicQuiz = () => {
   const renderQuestion = () => {
     const currentQuestion = questions[currentQuestionIndex];
     return (
-      <div className="bg-white rounded-lg shadow-lg p-8 relative">
+      <div className="bg-white rounded-lg shadow-lg p-6 relative">
         {quiz?.banner_url && (
-          <div className="rounded-lg overflow-hidden mb-6">
+          <div className="rounded-lg overflow-hidden mb-4">
             <img
               src={quiz.banner_url}
               alt="Quiz banner"
@@ -353,7 +353,7 @@ const PublicQuiz = () => {
             />
           </div>
         )}
-        <div className="mb-6">
+        <div className="mb-4">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-medium text-gray-900">
               Question {currentQuestionIndex + 1} sur {questions.length}
@@ -372,7 +372,7 @@ const PublicQuiz = () => {
           </div>
         </div>
 
-        <h3 className="text-xl font-medium text-gray-900 mb-6">
+        <h3 className="text-xl font-medium text-gray-900 mb-4">
           {currentQuestion.question_text}
         </h3>
         <div className="space-y-3">
@@ -394,7 +394,7 @@ const PublicQuiz = () => {
           ))}
         </div>
 
-        <div className="mt-8 flex justify-between items-center">
+        <div className="mt-4 flex justify-between items-center">
           <button
             onClick={handlePrevious}
             disabled={currentQuestionIndex === 0}
@@ -419,13 +419,13 @@ const PublicQuiz = () => {
 
   const renderReview = () => (
     <div className="bg-white rounded-lg shadow-lg p-8 text-center">
-      <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6">
+      <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
         <Star className="w-8 h-8 text-[#ca231c]" />
       </div>
       <h2 className="text-2xl font-bold text-gray-900 mb-4">
         Merci pour votre participation !
       </h2>
-      <p className="text-gray-600 mb-8">
+      <p className="text-gray-600 mb-4">
         Pour confirmer votre participation et avoir une chance de gagner, 
         laissez-nous un avis sur Google en cliquant sur le bouton ci-dessous.
       </p>
@@ -446,9 +446,9 @@ const PublicQuiz = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="py-12 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-xs mx-auto mb-4">
+    <div className="min-h-screen bg-gray-50 py-2.5">
+      <div className="px-4 sm:px-6 lg:px-8">
+        <div className="max-w-xs mx-auto mb-2.5">
           <img
             src="https://i.ibb.co/5K8VFLb/Quiz-1.png"
             alt="Quiz Logo"
@@ -465,7 +465,7 @@ const PublicQuiz = () => {
           </button>
         </div>
         <div className="max-w-3xl mx-auto">
-          <div className="mb-6 flex justify-center space-x-4">
+          <div className="mb-2.5 flex justify-center space-x-4">
             <button
               onClick={() => setActiveTab('quiz')}
               className={`px-4 py-2 rounded-md flex items-center transition-colors duration-200 ${
