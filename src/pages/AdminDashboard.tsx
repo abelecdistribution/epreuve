@@ -99,12 +99,16 @@ const AdminDashboard = () => {
   };
 
   const handleCreateNewQuiz = () => {
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
+
     setQuiz({
       title: '',
       description: '',
-      month: new Date().toISOString().slice(0, 7) + '-01',
-      start_date: new Date().toISOString().slice(0, 16),
-      end_date: new Date(new Date().setMonth(new Date().getMonth() + 1)).toISOString().slice(0, 16),
+      month: startOfMonth.toISOString().slice(0, 10),
+      start_date: startOfMonth.toISOString().slice(0, 16),
+      end_date: endOfMonth.toISOString().slice(0, 16),
     });
     setQuestions([]);
     setBannerUrl('');
@@ -245,33 +249,66 @@ const AdminDashboard = () => {
       return;
     }
 
+    // Vérifier que les dates sont dans le même mois que month
+    const quizMonth = new Date(quiz.month);
+    const startDate = new Date(quiz.start_date);
+    const endDate = new Date(quiz.end_date);
+
+    if (quizMonth.getMonth() !== startDate.getMonth() || 
+        quizMonth.getFullYear() !== startDate.getFullYear()) {
+      toast.error('La date de début doit être dans le même mois que le quiz');
+      return;
+    }
+
     setSaving(true);
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error('Utilisateur non authentifié');
+      }
+
       let quizId = quiz.id;
 
-      // S'assurer que les dates sont au format ISO
+      // Formater les dates correctement pour PostgreSQL
       const quizData = {
         ...quiz,
-        start_date: new Date(quiz.start_date).toISOString().replace('.000Z', '+00:00'),
-        end_date: new Date(quiz.end_date).toISOString().replace('.000Z', '+00:00'),
+        admin_id: user.id,
+        start_date: startDate.toISOString(),
+        end_date: endDate.toISOString(),
+        month: quizMonth.toISOString().split('T')[0],
+        banner_url: bannerUrl || null
       };
 
       if (!quizId) {
+        // Vérifier si un quiz existe déjà pour ce mois
+        const { data: existingQuiz } = await supabase
+          .from('quizzes')
+          .select('id')
+          .eq('month', quizData.month)
+          .maybeSingle();
+
+        if (existingQuiz) {
+          throw { code: '23505', message: 'Un quiz existe déjà pour ce mois' };
+        }
+
         const { data: newQuiz, error: quizError } = await supabase
           .from('quizzes')
-          .insert({
-            ...quizData,
-            admin_id: (await supabase.auth.getUser()).data.user?.id,
-          })
+          .insert(quizData)
           .select()
           .single();
 
         if (quizError) throw quizError;
+        if (!newQuiz) {
+          throw new Error('Erreur lors de la création du quiz');
+        }
         quizId = newQuiz.id;
       } else {
         const { error: updateError } = await supabase
           .from('quizzes')
-          .update(quizData)
+          .update({
+            ...quizData,
+            admin_id: user.id
+          })
           .eq('id', quizId);
 
         if (updateError) throw updateError;
@@ -279,16 +316,22 @@ const AdminDashboard = () => {
 
       // Supprimer les anciennes questions
       if (quiz.id) {
-        await supabase.from('questions').delete().eq('quiz_id', quiz.id);
+        const { error: deleteError } = await supabase
+          .from('questions')
+          .delete()
+          .eq('quiz_id', quiz.id);
+        
+        if (deleteError) throw deleteError;
       }
 
       // Insérer les nouvelles questions
-      const { error: questionsError } = await supabase.from('questions').insert(
-        questions.map((q) => ({
+      const { error: questionsError } = await supabase
+        .from('questions')
+        .insert(questions.map((q) => ({
           ...q,
           quiz_id: quizId,
-        }))
-      );
+          options: q.options.filter(option => option !== '')
+        })));
 
       if (questionsError) throw questionsError;
 
@@ -297,7 +340,14 @@ const AdminDashboard = () => {
       setActiveTab('list');
     } catch (error) {
       console.error('Error saving quiz:', error);
-      toast.error('Erreur lors de l\'enregistrement du quiz');
+      if (error?.code === '23505') {
+        toast.error('Un quiz existe déjà pour ce mois');
+      } else if (error?.message === 'Utilisateur non authentifié') {
+        toast.error('Vous devez être connecté pour créer un quiz');
+        navigate('/admin/login');
+      } else {
+        toast.error('Erreur lors de l\'enregistrement du quiz');
+      }
     } finally {
       setSaving(false);
     }
