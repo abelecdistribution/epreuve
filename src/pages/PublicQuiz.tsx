@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
-import { Loader2, Send, Lock, ChevronLeft, Star, ArrowRight, Mail, Clock } from 'lucide-react';
+import { Loader2, Send, Lock, ChevronLeft, Star, ArrowRight, Mail, Clock, Info, Book } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 interface Question {
@@ -29,17 +29,81 @@ const PublicQuiz = () => {
   const [submitted, setSubmitted] = useState(false);
   const [checkingEmail, setCheckingEmail] = useState(false);
   const GOOGLE_REVIEW_URL = 'https://www.google.com/search?q=ABELEC+DISTRIBUTION&sca_esv=8ac8d9f2846f5353&rlz=1C1GCEA_enFR1120FR1120&hl=fr-FR&udm=1&sa=X&ved=2ahUKEwj3usenouiKAxV_bKQEHQIBB-IQjGp6BAgmEAE&biw=1920&bih=911&dpr=1';
+  const [activeTab, setActiveTab] = useState<'quiz' | 'info'>('quiz');
+
+  const renderInfo = () => (
+    <div className="bg-white rounded-lg shadow-lg p-8">
+      <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6">
+        <Book className="w-8 h-8 text-[#ca231c]" />
+      </div>
+      <h2 className="text-2xl font-bold text-gray-900 text-center mb-8">
+        À propos de l'Épreuve d'ABELEC
+      </h2>
+      <div className="max-w-2xl mx-auto space-y-8">
+        <div className="bg-gray-50 rounded-lg p-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+            <span className="w-8 h-8 bg-[#ca231c] text-white rounded-full flex items-center justify-center mr-3 flex-shrink-0">1</span>
+            Le Concept
+          </h3>
+          <p className="text-gray-600 mb-4">
+            L'Épreuve d'ABELEC est un test de connaissances mensuel composé de 5 questions soigneusement sélectionnées pour tester vos connaissances dans le domaine de l'électricité.
+          </p>
+          <div className="ml-11">
+            <h4 className="text-sm font-medium text-gray-900 mb-2">Les questions portent sur :</h4>
+            <ul className="list-disc list-inside space-y-1 text-gray-600">
+              <li>L'électricité et ses applications</li>
+              <li>Les normes électriques en vigueur</li>
+              <li>L'histoire de l'électricité</li>
+              <li>La culture générale du domaine</li>
+            </ul>
+          </div>
+        </div>
+
+        <div className="bg-gray-50 rounded-lg p-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+            <span className="w-8 h-8 bg-[#ca231c] text-white rounded-full flex items-center justify-center mr-3 flex-shrink-0">2</span>
+            Récompenses
+          </h3>
+          <p className="text-gray-600 ml-11">
+            À la fin de chaque mois, un tirage au sort est effectué parmi tous les participants ayant obtenu un score parfait de 5/5. Le gagnant remporte une récompense exceptionnelle !
+          </p>
+        </div>
+
+        <div className="bg-gray-50 rounded-lg p-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+            <span className="w-8 h-8 bg-[#ca231c] text-white rounded-full flex items-center justify-center mr-3 flex-shrink-0">3</span>
+            Règles de Participation
+          </h3>
+          <ul className="space-y-3 ml-11 text-gray-600">
+            <li className="flex items-start">
+              <span className="w-1.5 h-1.5 bg-[#ca231c] rounded-full mt-2 mr-2 flex-shrink-0"></span>
+              Une seule participation est autorisée par personne et par épreuve mensuelle
+            </li>
+            <li className="flex items-start">
+              <span className="w-1.5 h-1.5 bg-[#ca231c] rounded-full mt-2 mr-2 flex-shrink-0"></span>
+              Vous devez répondre à toutes les questions pour valider votre participation
+            </li>
+            <li className="flex items-start">
+              <span className="w-1.5 h-1.5 bg-[#ca231c] rounded-full mt-2 mr-2 flex-shrink-0"></span>
+              Pour maximiser vos chances de gagner, nous vous recommandons de laisser un avis sur l'une de nos agences
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  );
 
   const renderWelcome = () => (
     <div className="bg-white rounded-lg shadow-lg p-8 text-center">
       <h1 className="text-3xl font-bold text-[#ca231c] mb-4">{quiz?.title}</h1>
+      
       <div 
-        className="text-gray-600 mb-8 prose max-w-none"
+        className="text-gray-600 mb-8 prose max-w-none prose-img:my-0 prose-img:mx-auto"
         dangerouslySetInnerHTML={{ __html: quiz?.description || '' }}
       />
       <div className="bg-red-50 border border-red-100 rounded-lg p-6 mb-8">
         <h2 className="text-xl font-semibold text-gray-900 mb-3">
-          Une nouvelle épreuve est disponible ! 🏆
+          Une nouvelle épreuve est disponible !
         </h2>
         <p className="text-gray-600 mb-4">
           Testez vos connaissances et tentez de gagner des récompenses exceptionnelles.
@@ -100,7 +164,6 @@ const PublicQuiz = () => {
             
             setCheckingEmail(true);
             try {
-              // Vérifier si l'email a déjà participé à cette épreuve
               const { data: existingSubmission } = await supabase
                 .from('submissions')
                 .select('id')
@@ -206,19 +269,6 @@ const PublicQuiz = () => {
     }
 
     try {
-      // Vérifier si l'email a déjà participé à cette épreuve
-      const { data: existingSubmission } = await supabase
-        .from('submissions')
-        .select('id')
-        .eq('quiz_id', quiz.id)
-        .eq('email', email)
-        .maybeSingle();
-
-      if (existingSubmission) {
-        toast.error('Vous avez déjà participé à cette épreuve');
-        return;
-      }
-
       // Convertir l'objet answers en chaîne JSON
       const answersString = JSON.stringify(answers);
 
@@ -400,8 +450,8 @@ const PublicQuiz = () => {
       <div className="py-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-xs mx-auto mb-4">
           <img
-            src="https://i.ibb.co/FJB3679/Epreuve-abelec.png"
-            alt="Epreuve ABELEC"
+            src="https://i.ibb.co/5K8VFLb/Quiz-1.png"
+            alt="Quiz Logo"
             className="w-full h-auto"
           />
         </div>
@@ -415,9 +465,39 @@ const PublicQuiz = () => {
           </button>
         </div>
         <div className="max-w-3xl mx-auto">
-          {step === 'welcome' && renderWelcome()}
-          {step === 'email' && renderEmailStep()}
-          {step === 'quiz' && renderQuestion()}
+          <div className="mb-6 flex justify-center space-x-4">
+            <button
+              onClick={() => setActiveTab('quiz')}
+              className={`px-4 py-2 rounded-md flex items-center transition-colors duration-200 ${
+                activeTab === 'quiz'
+                  ? 'bg-[#ca231c] text-white'
+                  : 'bg-white text-gray-600 hover:bg-gray-50'
+              }`}
+            >
+              <Star className="w-4 h-4 mr-2" />
+              L'Épreuve
+            </button>
+            <button
+              onClick={() => setActiveTab('info')}
+              className={`px-4 py-2 rounded-md flex items-center transition-colors duration-200 ${
+                activeTab === 'info'
+                  ? 'bg-[#ca231c] text-white'
+                  : 'bg-white text-gray-600 hover:bg-gray-50'
+              }`}
+            >
+              <Info className="w-4 h-4 mr-2" />
+              Informations
+            </button>
+          </div>
+          
+          {activeTab === 'info' && renderInfo()}
+          {activeTab === 'quiz' && (
+            <>
+              {step === 'welcome' && renderWelcome()}
+              {step === 'email' && renderEmailStep()}
+              {step === 'quiz' && renderQuestion()}
+            </>
+          )}
         </div>
       </div>
     </div>
