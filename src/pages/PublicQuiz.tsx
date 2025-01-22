@@ -188,16 +188,6 @@ const PublicQuiz = () => {
         dangerouslySetInnerHTML={{ __html: quiz?.description || '' }}
       />
       
-      <div className="bg-red-50 border border-red-100 rounded-lg p-4 mb-4">
-        <h2 className="text-xl font-semibold text-gray-900 mb-3">
-          Une nouvelle épreuve est disponible !
-        </h2>
-        <p className="text-gray-600 mb-4">
-          Testez vos connaissances et tentez de gagner des récompenses exceptionnelles.
-          Le test comporte {questions.length} questions à choix unique.
-        </p>
-      </div>
-      
       <button
         onClick={() => setStep('email')}
         className="inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-[#ca231c] hover:bg-[#b01e18] transition-colors duration-200 shadow-sm"
