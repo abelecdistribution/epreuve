@@ -77,6 +77,12 @@ const AdminDashboard = () => {
   const drawWinner = async () => {
     if (!selectedQuizId || drawingWinner || winner) return;
 
+    const currentQuiz = allQuizzes.find(q => q.id === selectedQuizId);
+    if (!currentQuiz) {
+      toast.error('Quiz non trouvé');
+      return;
+    }
+
     setDrawingWinner(true);
     const perfectScoreSubmissions = filteredAndSortedSubmissions.filter(
       (submission) => submission.score === 5
@@ -105,13 +111,25 @@ const AdminDashboard = () => {
         setWinner(finalWinner);
         
         try {
-          // Sauvegarder le gagnant dans la base de données
-          const { error: updateError } = await supabase
+          const { data: updatedQuiz, error: updateError } = await supabase
             .from('quizzes')
-            .update({ drawn_winner_email: finalWinner })
-            .eq('id', selectedQuizId);
+            .update({
+              drawn_winner_email: finalWinner
+            })
+            .eq('id', selectedQuizId)
+            .select()
+            .single();
 
           if (updateError) throw updateError;
+
+          // Mettre à jour la liste des quiz avec le nouveau gagnant
+          setAllQuizzes(prevQuizzes =>
+            prevQuizzes.map(quiz =>
+              quiz.id === selectedQuizId
+                ? { ...quiz, drawn_winner_email: finalWinner }
+                : quiz
+            )
+          );
 
           setDrawingWinner(false);
           createConfetti();
@@ -120,6 +138,7 @@ const AdminDashboard = () => {
           console.error('Error saving winner:', error);
           toast.error('Erreur lors de la sauvegarde du gagnant');
           setDrawingWinner(false);
+          setWinner(null);
         }
       }
     }, 500);
