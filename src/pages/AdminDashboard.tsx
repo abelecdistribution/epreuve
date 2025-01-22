@@ -439,15 +439,26 @@ const AdminDashboard = () => {
 
   const loadQuizSubmissions = async (quizId: string) => {
     try {
-      const { data: submissionsData, error } = await supabase
-        .from('submissions')
-        .select('*')
-        .eq('quiz_id', quizId)
-        .order('created_at', { ascending: false });
+      // Charger les soumissions et les informations du quiz
+      const [submissionsResponse, quizResponse] = await Promise.all([
+        supabase
+          .from('submissions')
+          .select('*')
+          .eq('quiz_id', quizId)
+          .order('created_at', { ascending: false }),
+        supabase
+          .from('quizzes')
+          .select('drawn_winner_email')
+          .eq('id', quizId)
+          .single()
+      ]);
 
-      if (error) throw error;
-      setSubmissions(submissionsData || []);
+      if (submissionsResponse.error) throw submissionsResponse.error;
+      if (quizResponse.error) throw quizResponse.error;
+
+      setSubmissions(submissionsResponse.data || []);
       setSelectedQuizId(quizId);
+      setWinner(quizResponse.data.drawn_winner_email);
       setActiveTab('submissions');
     } catch (error) {
       console.error('Error loading submissions:', error);
