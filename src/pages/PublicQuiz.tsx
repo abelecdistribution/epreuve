@@ -46,6 +46,7 @@ const PublicQuiz = () => {
         .from('quizzes')
         .select('id, title, end_date, drawn_winner_email')
         .lt('end_date', new Date().toISOString())
+        .not('drawn_winner_email', 'is', null)
         .order('end_date', { ascending: false });
 
       if (quizzesError) throw quizzesError;
@@ -206,7 +207,7 @@ const PublicQuiz = () => {
         <ArrowRight className="w-5 h-5 ml-2" />
       </button>
       
-      {pastQuizzes.length > 0 && (
+      {pastQuizzes.length > 0 && pastQuizzes.some(quiz => quiz.drawn_winner_email) && (
         <div className="mt-8 border-t border-gray-200 pt-8">
           <button
             onClick={() => setShowPastQuizzes(!showPastQuizzes)}
