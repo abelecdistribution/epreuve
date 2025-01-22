@@ -101,11 +101,11 @@ const PublicQuiz = () => {
                       Terminé le {new Date(pastQuiz.end_date).toLocaleDateString()}
                     </p>
                   </div>
-                  {pastQuiz.winner_email && (
+                  {pastQuiz.drawn_winner_email && (
                     <div className="flex items-center bg-red-50 px-3 py-1 rounded-full">
                       <Trophy className="w-4 h-4 text-[#ca231c] mr-2" />
                       <span className="text-sm font-medium text-[#ca231c]">
-                        {maskEmail(pastQuiz.winner_email)}
+                        {maskEmail(pastQuiz.drawn_winner_email)}
                       </span>
                     </div>
                   )}
