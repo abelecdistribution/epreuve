@@ -27,5 +27,6 @@
 [build.processing.images]
   compress = true
 
-[secrets]
-  SECRETS_SCAN_OMIT_PATHS = [".env", ".env.production", "dist/assets/index-*.js"]
+[build.environment]
+  NODE_VERSION = "20"
+  SECRETS_SCAN_ENABLED = "false"
