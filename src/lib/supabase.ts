@@ -5,6 +5,14 @@ const getSupabaseConfig = () => {
   const url = import.meta.env.VITE_SUPABASE_URL;
   const key = import.meta.env.VITE_SUPABASE_ANON_KEY;
   
+  // Log pour debug
+  console.debug('Supabase Config:', {
+    hasUrl: !!url,
+    hasKey: !!key,
+    urlLength: url?.length,
+    keyLength: key?.length
+  });
+  
   // Vérification plus détaillée des variables d'environnement
   if (typeof url !== 'string' || url.trim() === '') {
     throw new Error('VITE_SUPABASE_URL manquante ou invalide');
