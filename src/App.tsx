@@ -7,11 +7,13 @@ import AdminSignup from './pages/AdminSignup';
 import AdminDashboard from './pages/AdminDashboard';
 import NotFound from './pages/NotFound';
 import ProtectedRoute from './components/ProtectedRoute';
+import SupabaseTest from './components/SupabaseTest';
 
 function App() {
   return (
     <BrowserRouter>
       <Toaster position="top-right" />
+      <SupabaseTest />
       <Routes>
         <Route path="/" element={<PublicQuiz />} />
         <Route path="/admin/login" element={<AdminLogin />} />
