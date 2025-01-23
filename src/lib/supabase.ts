@@ -1,15 +1,19 @@
 import { createClient } from '@supabase/supabase-js';
 import { Database } from './database.types';
 
-// Fallback pour le développement local
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || process.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY;
+const getSupabaseConfig = () => {
+  const url = import.meta.env.VITE_SUPABASE_URL;
+  const key = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  console.error('Supabase credentials are missing. Please check your environment variables.');
-}
+  if (!url || !key) {
+    throw new Error('Missing Supabase environment variables');
+  }
 
-export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey);
+  return { url, key };
+};
+
+const { url, key } = getSupabaseConfig();
+export const supabase = createClient<Database>(url, key);
 
 // Vérifier la connexion au démarrage
 supabase.auth.onAuthStateChange((event, session) => {
