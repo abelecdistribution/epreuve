@@ -4,9 +4,14 @@ import { Database } from './database.types';
 const getSupabaseConfig = () => {
   const url = import.meta.env.VITE_SUPABASE_URL;
   const key = import.meta.env.VITE_SUPABASE_ANON_KEY;
+  
+  // Vérification plus détaillée des variables d'environnement
+  if (typeof url !== 'string' || url.trim() === '') {
+    throw new Error('VITE_SUPABASE_URL manquante ou invalide');
+  }
 
-  if (!url || !key) {
-    throw new Error('Missing Supabase environment variables');
+  if (typeof key !== 'string' || key.trim() === '') {
+    throw new Error('VITE_SUPABASE_ANON_KEY manquante ou invalide');
   }
 
   return { url, key };
