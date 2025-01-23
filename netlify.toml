@@ -4,6 +4,7 @@
 
 [build.environment]
   NODE_VERSION = "20"
+  SECRETS_SCAN_ENABLED = "false"
 
 [[redirects]]
   from = "/*"
@@ -26,7 +27,3 @@
 
 [build.processing.images]
   compress = true
-
-[build.environment]
-  NODE_VERSION = "20"
-  SECRETS_SCAN_ENABLED = "false"
