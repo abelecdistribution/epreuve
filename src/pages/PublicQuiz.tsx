@@ -31,10 +31,12 @@ const PublicQuiz = () => {
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingQuestions, setLoadingQuestions] = useState(false);
   const [email, setEmail] = useState('');
   const [answers, setAnswers] = useState<Record<string, number>>({});
   const [submitted, setSubmitted] = useState(false);
   const [checkingEmail, setCheckingEmail] = useState(false);
+  const [emailVerified, setEmailVerified] = useState(false);
   const GOOGLE_REVIEW_URL = 'https://www.google.com/search?q=ABELEC+DISTRIBUTION&sca_esv=8ac8d9f2846f5353&rlz=1C1GCEA_enFR1120FR1120&hl=fr-FR&udm=1&sa=X&ved=2ahUKEwj3usenouiKAxV_bKQEHQIBB-IQjGp6BAgmEAE&biw=1920&bih=911&dpr=1';
   const [activeTab, setActiveTab] = useState<'quiz' | 'info'>('quiz');
   const [pastQuizzes, setPastQuizzes] = useState<PastQuiz[]>([]);
@@ -305,11 +307,13 @@ const PublicQuiz = () => {
                 toast.error('Vous avez déjà participé à cette épreuve');
                 return;
               }
-
+              
+              setEmailVerified(true);
               setStep('quiz');
             } catch (error) {
               console.error('Error checking email:', error);
               toast.error('Une erreur est survenue lors de la vérification de l\'email');
+              setEmailVerified(false);
             } finally {
               setCheckingEmail(false);
             }
@@ -337,12 +341,28 @@ const PublicQuiz = () => {
     loadCurrentQuiz();
   }, []);
 
+  useEffect(() => {
+    // Réinitialiser l'état si aucune question n'est chargée
+    if (step === 'quiz' && (!questions || questions.length === 0)) {
+      if (!emailVerified) {
+        setStep('welcome');
+      }
+    }
+  }, [questions, step, emailVerified]);
+
   const handleAnswerSelect = (questionId: string, answerIndex: number) => {
     setAnswers({ ...answers, [questionId]: answerIndex });
     if (currentQuestionIndex < questions.length - 1) {
       setCurrentQuestionIndex(currentQuestionIndex + 1);
     }
   };
+
+  // Recharger les questions après la vérification de l'email
+  useEffect(() => {
+    if (emailVerified && step === 'quiz') {
+      loadCurrentQuiz();
+    }
+  }, [emailVerified, step]);
 
   const handlePrevious = () => {
     if (currentQuestionIndex > 0) {
@@ -353,24 +373,32 @@ const PublicQuiz = () => {
   const loadCurrentQuiz = async () => {
     const maxRetries = 3;
     let retryCount = 0;
-    
+    setLoadingQuestions(true);
+    console.log('Loading current quiz...');
+
     try {
       while (retryCount < maxRetries) {
         try {
           const { data: quizData, error: quizError } = await supabase
             .from('quizzes')
-            .select('*')
-            .gte('end_date', new Date().toISOString())
+            .select()
             .lte('start_date', new Date().toISOString())
+            .gte('end_date', new Date().toISOString())
             .maybeSingle();
 
-          if (quizError) throw quizError;
+          if (quizError) {
+            console.error('Error loading quiz:', quizError);
+            throw quizError;
+          }
 
           if (!quizData) {
+            console.log('No active quiz found');
             setLoading(false);
+            setLoadingQuestions(false);
             return;
           }
-      
+
+          console.log('Quiz loaded:', quizData);
           setQuiz(quizData);
 
           const { data: questionsData, error: questionsError } = await supabase
@@ -380,14 +408,17 @@ const PublicQuiz = () => {
             .order('order');
 
           if (questionsError) throw questionsError;
+          console.log('Questions loaded:', questionsData);
           setQuestions(questionsData || []);
+          setCurrentQuestionIndex(0);
 
-          // If we get here, everything worked
+          // Si on arrive ici, tout a fonctionné
           break;
         } catch (error) {
+          console.error(`Attempt ${retryCount + 1} failed:`, error);
           retryCount++;
           if (retryCount === maxRetries) throw error;
-          // Wait before retrying (exponential backoff)
+          // Attendre avant de réessayer (backoff exponentiel)
           await new Promise(resolve => setTimeout(resolve, Math.pow(2, retryCount) * 1000));
         }
       }
@@ -396,6 +427,7 @@ const PublicQuiz = () => {
       toast.error('Erreur de connexion. Veuillez réessayer dans quelques instants.');
     } finally {
       setLoading(false);
+      setLoadingQuestions(false);
     }
   };
 
@@ -487,6 +519,38 @@ const PublicQuiz = () => {
 
   const renderQuestion = () => {
     const currentQuestion = questions[currentQuestionIndex];
+    
+    if (loadingQuestions) {
+      return (
+        <div className="bg-white rounded-lg shadow-lg p-6 text-center">
+          <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <Info className="w-8 h-8 text-[#ca231c]" />
+          </div>
+          <h2 className="text-xl font-medium text-gray-900 mb-4">
+            Chargement des questions...
+          </h2>
+          <p className="text-gray-600">
+            Veuillez patienter pendant le chargement des questions.
+          </p>
+        </div>
+      );
+    }
+
+    if (!currentQuestion) {
+      return (
+        <div className="bg-white rounded-lg shadow-lg p-6 text-center">
+          <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <Info className="w-8 h-8 text-[#ca231c]" />
+          </div>
+          <h2 className="text-xl font-medium text-gray-900 mb-4">
+            Aucune question disponible
+          </h2>
+          <p className="text-gray-600">
+            Veuillez réessayer ultérieurement ou contacter l'administrateur.
+          </p>
+        </div>
+      );
+    }
     return (
       <div className="bg-white rounded-lg shadow-lg p-6 relative">
         {quiz?.banner_url && (
@@ -593,6 +657,7 @@ const PublicQuiz = () => {
   return (
     <div className="min-h-screen bg-gray-50 py-2.5 flex flex-col">
       <div className="px-4 sm:px-6 lg:px-8">
+        {/* Logo et navigation */}
         <div className="max-w-xs mx-auto mb-2.5">
           <img
             src="https://i.ibb.co/5K8VFLb/Quiz-1.png"
@@ -612,7 +677,13 @@ const PublicQuiz = () => {
         <div className="max-w-3xl mx-auto">
           <div className="mb-2.5 flex justify-center space-x-4">
             <button
-              onClick={() => setActiveTab('quiz')}
+              onClick={() => {
+                setActiveTab('quiz');
+                // Réinitialiser l'état si nécessaire
+                if (step === 'quiz' && (!questions || questions.length === 0)) {
+                  setStep('welcome');
+                }
+              }}
               className={`px-4 py-2 rounded-md flex items-center transition-colors duration-200 ${
                 activeTab === 'quiz'
                   ? 'bg-[#ca231c] text-white'
