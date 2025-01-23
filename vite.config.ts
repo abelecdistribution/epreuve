@@ -21,7 +21,7 @@ export default defineConfig({
   },
   // Définir les variables d'environnement comme externes
   define: {
-    'process.env.VITE_SUPABASE_URL': 'import.meta.env.VITE_SUPABASE_URL',
-    'process.env.VITE_SUPABASE_ANON_KEY': 'import.meta.env.VITE_SUPABASE_ANON_KEY',
+    'process.env.VITE_SUPABASE_URL': 'import.meta.env.SUPABASE_DATABASE_URL',
+    'process.env.VITE_SUPABASE_ANON_KEY': 'import.meta.env.SUPABASE_ANON_KEY',
   },
 });
