@@ -19,10 +19,15 @@ const SupabaseTest = () => {
   const checkConnection = async () => {
     try {
       // Vérifier la connexion de base
+      console.debug('Vérification de la connexion Supabase...');
+      
       const { data: { user } } = await supabase.auth.getUser();
       const { data, error } = await supabase.from('quizzes').select('count');
 
-      if (error) throw error;
+      if (error) {
+        console.debug('Erreur lors de la requête:', error);
+        throw error;
+      }
 
       // Récupérer les statistiques
       const [quizzes, submissions, winners] = await Promise.all([
@@ -42,9 +47,18 @@ const SupabaseTest = () => {
       setStatus('connected');
     } catch (err) {
       console.error('Erreur de connexion:', err);
+      // Ajouter plus de détails dans l'erreur
+      const details = {
+        message: err.message,
+        code: err.code,
+        hint: err.hint,
+        details: err.details
+      };
+      console.debug('Détails de l\'erreur:', details);
+      
       const errorMessage = err.message.includes('VITE_SUPABASE')
         ? `Variable manquante: ${err.message}`
-        : 'Erreur de connexion à la base de données';
+        : `Erreur de connexion: ${err.message}`;
       setStatus('error');
       setError(errorMessage);
     }
