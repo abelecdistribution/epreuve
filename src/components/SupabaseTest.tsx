@@ -16,13 +16,40 @@ const SupabaseTest = () => {
     checkConnection();
   }, []);
 
+  const logDeviceInfo = () => {
+    const info = {
+      userAgent: navigator.userAgent,
+      platform: navigator.platform,
+      viewport: {
+        width: window.innerWidth,
+        height: window.innerHeight
+      },
+      connection: navigator.connection ? {
+        type: (navigator.connection as any).effectiveType,
+        downlink: (navigator.connection as any).downlink
+      } : 'not available'
+    };
+    console.debug('Device Info:', info);
+  };
+
   const checkConnection = async () => {
     try {
+      logDeviceInfo();
+
       // Vérifier la connexion de base
-      console.debug('Vérification de la connexion Supabase...');
+      console.debug('Vérification de la connexion Supabase...', {
+        url: import.meta.env.VITE_SUPABASE_URL?.substring(0, 10) + '...',
+        keyPrefix: import.meta.env.VITE_SUPABASE_ANON_KEY?.substring(0, 10) + '...',
+        mode: import.meta.env.MODE,
+        prod: import.meta.env.PROD,
+        timestamp: new Date().toISOString()
+      });
       
       const { data: { user } } = await supabase.auth.getUser();
+      console.debug('Auth User:', user ? 'Authenticated' : 'Not authenticated');
+
       const { data, error } = await supabase.from('quizzes').select('count');
+      console.debug('Quiz Count Response:', { data, error });
 
       if (error) {
         console.debug('Erreur lors de la requête:', error);
@@ -37,6 +64,12 @@ const SupabaseTest = () => {
           .select('drawn_winner_email')
           .not('drawn_winner_email', 'is', null)
       ]);
+      
+      console.debug('Stats Response:', {
+        quizzes: quizzes.data,
+        submissions: submissions.data,
+        winners: winners.data
+      });
 
       setDetails({
         quizCount: quizzes.count || 0,
@@ -47,18 +80,21 @@ const SupabaseTest = () => {
       setStatus('connected');
     } catch (err) {
       console.error('Erreur de connexion:', err);
-      // Ajouter plus de détails dans l'erreur
+      // Ajouter des détails de diagnostic
       const details = {
         message: err.message,
         code: err.code,
         hint: err.hint,
-        details: err.details
+        details: err.details,
+        hasUrl: !!import.meta.env.VITE_SUPABASE_URL,
+        hasKey: !!import.meta.env.VITE_SUPABASE_ANON_KEY,
+        isProd: import.meta.env.PROD
       };
       console.debug('Détails de l\'erreur:', details);
       
       const errorMessage = err.message.includes('VITE_SUPABASE')
-        ? `Variable manquante: ${err.message}`
-        : `Erreur de connexion: ${err.message}`;
+        ? `Variable d'environnement manquante: ${err.message}`
+        : `Erreur de connexion: ${err.message} (${err.code || 'unknown'})`;
       setStatus('error');
       setError(errorMessage);
     }
