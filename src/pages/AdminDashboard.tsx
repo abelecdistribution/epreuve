@@ -209,21 +209,45 @@ const AdminDashboard = () => {
 
   const handleEditQuiz = async (quizId: string) => {
     try {
-      const { data: quizData, error: quizError } = await supabase
+      const { data: currentQuiz, error: checkError } = await supabase
         .from('quizzes')
         .select('*')
         .eq('id', quizId)
         .single();
 
-      if (quizError) throw quizError;
+      if (checkError) throw checkError;
+
+      if (!currentQuiz) {
+        toast.error('Quiz non trouvé');
+        return;
+      }
+
+      // Avertissement si le quiz est en cours
+      const now = new Date();
+      const isActive = now >= new Date(currentQuiz.start_date) && now <= new Date(currentQuiz.end_date);
+      
+      if (isActive) {
+        const confirm = window.confirm(
+          'ATTENTION : Ce quiz est actuellement en cours. ' +
+          'La modification pourrait affecter les participants actuels. ' +
+          'Voulez-vous vraiment continuer ?'
+        );
+        
+        if (!confirm) return;
+        
+        toast.warning(
+          'Vous modifiez un quiz en cours. Les changements seront immédiatement visibles pour les participants.',
+          { duration: 5000 }
+        );
+      }
 
       // Formater les dates pour l'input datetime-local
       setQuiz({
-        ...quizData,
-        start_date: new Date(quizData.start_date).toISOString().slice(0, 16),
-        end_date: new Date(quizData.end_date).toISOString().slice(0, 16)
+        ...currentQuiz,
+        start_date: new Date(currentQuiz.start_date).toISOString().slice(0, 16),
+        end_date: new Date(currentQuiz.end_date).toISOString().slice(0, 16)
       });
-      setBannerUrl(quizData.banner_url || '');
+      setBannerUrl(currentQuiz.banner_url || '');
 
       const { data: questionsData } = await supabase
         .from('questions')
@@ -629,7 +653,11 @@ const AdminDashboard = () => {
                           <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                             <button
                               onClick={() => handleEditQuiz(quiz.id!)}
-                              className="text-[#ca231c] hover:text-[#b01e18] mr-4"
+                              className={`text-[#ca231c] hover:text-[#b01e18] mr-4 ${
+                                now >= new Date(quiz.start_date) && now <= new Date(quiz.end_date)
+                                  ? 'animate-pulse'
+                                  : ''
+                              }`}
                               title="Modifier"
                             >
                               <FileEdit className="w-4 h-4" />
