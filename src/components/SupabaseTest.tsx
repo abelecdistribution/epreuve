@@ -12,13 +12,9 @@ const SupabaseTest = () => {
   }>({});
   const [showDetails, setShowDetails] = useState(false);
   const [rlsStatus, setRlsStatus] = useState<{[key: string]: boolean}>({});
-  const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
 
   useEffect(() => {
     checkConnection();
-    // Rafraîchir les données toutes les minutes
-    const refreshInterval = setInterval(checkConnection, 60000);
-    return () => clearInterval(refreshInterval);
   }, []);
 
   const testRLSPermissions = async () => {
@@ -89,25 +85,13 @@ const SupabaseTest = () => {
         supabase
           .from('quizzes')
           .select('*')
-          .options({
-            head: false,
-            count: 'exact'
-          })
           .order('created_at', { ascending: false }),
         supabase
           .from('submissions')
           .select('*')
-          .options({
-            head: false,
-            count: 'exact'
-          })
           .order('created_at', { ascending: false }),
         supabase.from('quizzes')
           .select('drawn_winner_email')
-          .options({
-            head: false,
-            count: 'exact'
-          })
           .not('drawn_winner_email', 'is', null)
       ]);
       
@@ -154,7 +138,6 @@ const SupabaseTest = () => {
         submissionCount: submissions.length,
         pastWinnersCount: winners.length
       });
-      setLastRefresh(new Date());
 
       setStatus('connected');
     } catch (err) {
@@ -207,12 +190,6 @@ const SupabaseTest = () => {
         )}
           <ChevronDown className={`w-4 h-4 transition-transform ${showDetails ? 'rotate-180' : ''}`} />
         </div>
-        
-        {lastRefresh && (
-          <div className="text-xs text-gray-400 mt-1">
-            Dernière mise à jour: {lastRefresh.toLocaleTimeString()}
-          </div>
-        )}
 
         {showDetails && status === 'connected' && (
           <div className="mt-2 text-sm border-t pt-2">
@@ -246,16 +223,6 @@ const SupabaseTest = () => {
                 Aucune donnée trouvée. Vérifiez les variables d'environnement Supabase.
               </p>
             )}
-            <button
-              onClick={() => {
-                checkConnection();
-                toast.success('Données rafraîchies');
-              }}
-              className="mt-2 w-full text-xs text-blue-600 hover:text-blue-800 flex items-center justify-center gap-1"
-            >
-              <RefreshCw className="w-3 h-3" />
-              Rafraîchir les données
-            </button>
           </div>
         )}
       </div>
