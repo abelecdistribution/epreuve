@@ -57,24 +57,28 @@ const SupabaseTest = () => {
       }
 
       // Récupérer les statistiques
-      const [quizzes, submissions, winners] = await Promise.all([
-        supabase.from('quizzes').select('count'),
-        supabase.from('submissions').select('count'),
+      const [quizzesResponse, submissionsResponse, winnersResponse] = await Promise.all([
+        supabase.from('quizzes').select('*'),
+        supabase.from('submissions').select('*'),
         supabase.from('quizzes')
           .select('drawn_winner_email')
           .not('drawn_winner_email', 'is', null)
       ]);
       
       console.debug('Stats Response:', {
-        quizzes: quizzes.data,
-        submissions: submissions.data,
-        winners: winners.data
+        quizzes: quizzesResponse.data,
+        submissions: submissionsResponse.data,
+        winners: winnersResponse.data
       });
 
+      if (quizzesResponse.error) throw quizzesResponse.error;
+      if (submissionsResponse.error) throw submissionsResponse.error;
+      if (winnersResponse.error) throw winnersResponse.error;
+
       setDetails({
-        quizCount: quizzes.count || 0,
-        submissionCount: submissions.count || 0,
-        pastWinnersCount: winners.data?.length || 0
+        quizCount: quizzesResponse.data?.length || 0,
+        submissionCount: submissionsResponse.data?.length || 0,
+        pastWinnersCount: winnersResponse.data?.length || 0
       });
 
       setStatus('connected');
