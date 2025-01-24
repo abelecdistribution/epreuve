@@ -11,10 +11,41 @@ const SupabaseTest = () => {
     pastWinnersCount?: number;
   }>({});
   const [showDetails, setShowDetails] = useState(false);
+  const [rlsStatus, setRlsStatus] = useState<{[key: string]: boolean}>({});
 
   useEffect(() => {
     checkConnection();
   }, []);
+
+  const testRLSPermissions = async () => {
+    const tables = ['quizzes', 'submissions', 'admins'];
+    const permissions: {[key: string]: boolean} = {};
+    
+    for (const table of tables) {
+      try {
+        console.debug(`Testing RLS for ${table}...`);
+        const { data, error, status } = await supabase
+          .from(table)
+          .select('count')
+          .limit(1);
+        
+        console.debug(`RLS test result for ${table}:`, {
+          success: !error,
+          status,
+          error: error?.message,
+          data
+        });
+        
+        permissions[table] = !error;
+      } catch (err) {
+        console.error(`RLS test failed for ${table}:`, err);
+        permissions[table] = false;
+      }
+    }
+    
+    setRlsStatus(permissions);
+    return permissions;
+  };
 
   const logDeviceInfo = () => {
     const info = {
@@ -35,6 +66,7 @@ const SupabaseTest = () => {
   const checkConnection = async () => {
     try {
       logDeviceInfo();
+      await testRLSPermissions();
 
       // Vérifier la connexion de base
       console.debug('Vérification de la connexion Supabase...', {
@@ -48,37 +80,63 @@ const SupabaseTest = () => {
       const { data: { user } } = await supabase.auth.getUser();
       console.debug('Auth User:', user ? 'Authenticated' : 'Not authenticated');
 
-      const { data, error } = await supabase.from('quizzes').select('count');
-      console.debug('Quiz Count Response:', { data, error });
-
-      if (error) {
-        console.debug('Erreur lors de la requête:', error);
-        throw error;
-      }
-
       // Récupérer les statistiques
       const [quizzesResponse, submissionsResponse, winnersResponse] = await Promise.all([
-        supabase.from('quizzes').select('*'),
-        supabase.from('submissions').select('*'),
+        supabase
+          .from('quizzes')
+          .select('*')
+          .order('created_at', { ascending: false }),
+        supabase
+          .from('submissions')
+          .select('*')
+          .order('created_at', { ascending: false }),
         supabase.from('quizzes')
           .select('drawn_winner_email')
           .not('drawn_winner_email', 'is', null)
       ]);
       
-      console.debug('Stats Response:', {
-        quizzes: quizzesResponse.data,
-        submissions: submissionsResponse.data,
-        winners: winnersResponse.data
+      // Log détaillé des réponses
+      console.debug('Réponses détaillées:', {
+        quizzes: {
+          data: quizzesResponse.data,
+          error: quizzesResponse.error,
+          status: quizzesResponse.status,
+          statusText: quizzesResponse.statusText
+        },
+        submissions: {
+          data: submissionsResponse.data,
+          error: submissionsResponse.error,
+          status: submissionsResponse.status,
+          statusText: submissionsResponse.statusText
+        },
+        winners: {
+          data: winnersResponse.data,
+          error: winnersResponse.error,
+          status: winnersResponse.status,
+          statusText: winnersResponse.statusText
+        }
       });
 
       if (quizzesResponse.error) throw quizzesResponse.error;
       if (submissionsResponse.error) throw submissionsResponse.error;
       if (winnersResponse.error) throw winnersResponse.error;
 
+      // Vérifier si les données sont bien des tableaux
+      const quizzes = Array.isArray(quizzesResponse.data) ? quizzesResponse.data : [];
+      const submissions = Array.isArray(submissionsResponse.data) ? submissionsResponse.data : [];
+      const winners = Array.isArray(winnersResponse.data) ? winnersResponse.data : [];
+
+      console.debug('Données traitées:', {
+        quizCount: quizzes.length,
+        submissionCount: submissions.length,
+        winnerCount: winners.length,
+        timestamp: new Date().toISOString()
+      });
+
       setDetails({
-        quizCount: quizzesResponse.data?.length || 0,
-        submissionCount: submissionsResponse.data?.length || 0,
-        pastWinnersCount: winnersResponse.data?.length || 0
+        quizCount: quizzes.length,
+        submissionCount: submissions.length,
+        pastWinnersCount: winners.length
       });
 
       setStatus('connected');
@@ -135,6 +193,17 @@ const SupabaseTest = () => {
 
         {showDetails && status === 'connected' && (
           <div className="mt-2 text-sm border-t pt-2">
+            <div className="mb-2 pb-2 border-b border-gray-200">
+              <div className="text-xs font-medium text-gray-500 mb-1">Permissions RLS:</div>
+              {Object.entries(rlsStatus).map(([table, hasAccess]) => (
+                <div key={table} className="flex items-center justify-between">
+                  <span className="text-gray-600">{table}:</span>
+                  <span className={`text-xs ${hasAccess ? 'text-green-500' : 'text-red-500'}`}>
+                    {hasAccess ? 'Accès OK' : 'Pas d\'accès'}
+                  </span>
+                </div>
+              ))}
+            </div>
             <div className="space-y-1">
               <div className="flex justify-between items-center">
                 <span className="text-gray-600">Quiz créés:</span>
