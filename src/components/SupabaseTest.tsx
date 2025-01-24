@@ -12,9 +12,20 @@ const SupabaseTest = () => {
   }>({});
   const [showDetails, setShowDetails] = useState(false);
   const [rlsStatus, setRlsStatus] = useState<{[key: string]: boolean}>({});
+  const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   useEffect(() => {
     checkConnection();
+    
+    // Rafraîchissement automatique toutes les 30 secondes
+    const refreshInterval = setInterval(() => {
+      if (!isRefreshing) {
+        checkConnection();
+      }
+    }, 30000);
+
+    return () => clearInterval(refreshInterval);
   }, []);
 
   const testRLSPermissions = async () => {
@@ -64,6 +75,7 @@ const SupabaseTest = () => {
   };
 
   const checkConnection = async () => {
+    setIsRefreshing(true);
     try {
       logDeviceInfo();
       await testRLSPermissions();
@@ -130,7 +142,8 @@ const SupabaseTest = () => {
         quizCount: quizzes.length,
         submissionCount: submissions.length,
         winnerCount: winners.length,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        lastRefresh: lastRefresh?.toISOString()
       });
 
       setDetails({
@@ -138,7 +151,8 @@ const SupabaseTest = () => {
         submissionCount: submissions.length,
         pastWinnersCount: winners.length
       });
-
+      
+      setLastRefresh(new Date());
       setStatus('connected');
     } catch (err) {
       console.error('Erreur de connexion:', err);
@@ -157,8 +171,11 @@ const SupabaseTest = () => {
       const errorMessage = err.message.includes('VITE_SUPABASE')
         ? `Variable d'environnement manquante: ${err.message}`
         : `Erreur de connexion: ${err.message} (${err.code || 'unknown'})`;
+      
       setStatus('error');
       setError(errorMessage);
+    } finally {
+      setIsRefreshing(false);
     }
   };
 
@@ -193,6 +210,10 @@ const SupabaseTest = () => {
 
         {showDetails && status === 'connected' && (
           <div className="mt-2 text-sm border-t pt-2">
+            <div className="flex justify-between items-center mb-2 text-xs text-gray-500">
+              <span>Dernière mise à jour:</span>
+              <span>{lastRefresh ? new Date(lastRefresh).toLocaleTimeString() : 'Jamais'}</span>
+            </div>
             <div className="mb-2 pb-2 border-b border-gray-200">
               <div className="text-xs font-medium text-gray-500 mb-1">Permissions RLS:</div>
               {Object.entries(rlsStatus).map(([table, hasAccess]) => (
